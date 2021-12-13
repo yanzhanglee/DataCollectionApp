@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">DataCollectionApp</string>
+    <string name="getAuth1">开启访问应用使用权限</string>
+    <string name="device_id">设备ID</string>
+    <string name="blank">/</string>
+    <string name="getAuth2">开启悬浮窗权限</string>
+    <string name="getAuth3">开启其他所需权限</string>
+    <string name="addWhitelist">添加至系统白名单</string>
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="how_to_add_whitelist">如何添加白名单</string>
+</resources>
