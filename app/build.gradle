@@ -17,6 +17,25 @@ android {
 
         dataBinding.enabled true
 
+        //AWARE core sensors SyncAdapters
+        resValue "string", "provider_applications", android.defaultConfig.applicationId + ".provider.applications"
+        resValue "string", "provider_aware", android.defaultConfig.applicationId + ".provider.aware"
+        resValue "string", "provider_battery", android.defaultConfig.applicationId + ".provider.battery"
+        resValue "string", "provider_bluetooth", android.defaultConfig.applicationId + ".provider.bluetooth"
+        resValue "string", "provider_communication", android.defaultConfig.applicationId + ".provider.communication"
+        resValue "string", "provider_esm", android.defaultConfig.applicationId + ".provider.esm"
+        resValue "string", "provider_installations", android.defaultConfig.applicationId + ".provider.installations"
+        resValue "string", "provider_light", android.defaultConfig.applicationId + ".provider.light"
+        resValue "string", "provider_locations", android.defaultConfig.applicationId + ".provider.locations"
+        resValue "string", "provider_network", android.defaultConfig.applicationId + ".provider.network"
+        resValue "string", "provider_screen", android.defaultConfig.applicationId + ".provider.screen"
+        resValue "string", "provider_wifi", android.defaultConfig.applicationId + ".provider.wifi"
+
+        //Bundled plugins provider authority overrides
+        resValue "string", "provider_google_activity_recognition", android.defaultConfig.applicationId + ".provider.gar"
+        resValue "string", "provider_google_fused", android.defaultConfig.applicationId + ".provider.geofences"
+        resValue "string", "provider_applicationsdiff", android.defaultConfig.applicationId + ".provider.applicationsdiff"
+
     }
 
     buildTypes {

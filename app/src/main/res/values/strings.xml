@@ -1,11 +1,34 @@
 <resources>
-    <string name="app_name">DataCollectionApp</string>
+    <string name="app_name">数据收集</string>
     <string name="getAuth1">开启访问应用使用权限</string>
-    <string name="device_id">设备ID</string>
+    <string name="user_label">用户名</string>
+    <string name="device_info">设备信息</string>
+    <string name="experiment_id">实验ID</string>
     <string name="blank">/</string>
     <string name="getAuth2">开启悬浮窗权限</string>
-    <string name="getAuth3">开启其他所需权限</string>
+    <string name="getAuth3">开启所需数据权限</string>
     <string name="addWhitelist">添加至系统白名单</string>
 <!-- TODO: Remove or change this placeholder text -->
     <string name="how_to_add_whitelist">如何添加白名单</string>
+    <string name="register_experiment">注册实验</string>
+    <string name="pls_enter_user_label">请输入您的名称或编号</string>
+    <string name="get_accessibility">开启无障碍权限</string>
+    <string name="sync_data">同步数据</string>
+    <string name="not_use_app_cn">No App Use in </string>
+    <string name="not_use_app_no">已未使用APP </string>
+    <string name="hour_cn"> hrs</string>
+    <string name="hour_no"> 小时</string>
+    <string name="enable_aware_cn">Please Enable AWARE in Accessibility Settings!</string>
+    <string name="enable_aware_no">请在无障碍设置中允许AWARE！</string>
+    <string name="crash_title_no">请重启手机</string>
+    <string name="crash_title_cn">Please Restart the Phone</string>
+    <string name="crash_content_no">程序崩溃后需要重启手机.</string>
+    <string name="crash_content_cn">Phone restart is required after app crash.</string>
+    <string name="kill_title_no">请不要关闭APP</string>
+    <string name="kill_title_cn">Please Do Not Kill The App</string>
+    <string name="kill_content_no">关闭APP后台后需要手动打开</string>
+    <string name="kill_content_cn">Please Restart the APP after kill it.</string>
+    <string name="get_accessibility_aware">在无障碍设置中启用Aware</string>
+    <string name="provider_applicationsdiff" translatable="false">com.example.datacollectionapp.provider.applicationsdiff</string>
+    <string name="unnecessary_auth">-- 以下为非必需权限 --</string>
 </resources>
