@@ -104,7 +104,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.5" />
+        app:layout_constraintGuide_percent="0.45" />
 
     <Button
         android:id="@+id/btnGetAuth1"
@@ -180,6 +180,21 @@
         app:layout_constraintTop_toBottomOf="@+id/btnAddWhiteList"
         app:layout_constraintVertical_bias="0.0" />
 
+    <Button
+        android:id="@+id/btnNotification"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@color/purple_700"
+        android:text="@string/get_notification_auth"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/guideline6"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/guideline3"
+        app:layout_constraintTop_toBottomOf="@+id/btnGetAccessibility"
+        app:layout_constraintVertical_bias="0.0" />
+
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline6"
         android:layout_width="wrap_content"
@@ -210,20 +225,20 @@
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="@+id/guideline3"
         app:layout_constraintTop_toTopOf="@+id/tvTitleDeviceID"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintVertical_bias="0.0"
+        tools:ignore="DuplicateClickableBoundsCheck,TextContrastCheck" />
 
     <Button
         android:id="@+id/btnSyncData"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:backgroundTint="@color/teal_700"
         android:text="@string/sync_data"
         app:layout_constraintBottom_toTopOf="@+id/guideline4"
         app:layout_constraintEnd_toStartOf="@+id/guideline6"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="@+id/guideline3"
-        app:layout_constraintTop_toBottomOf="@+id/btnJoinStudy"
+        app:layout_constraintTop_toTopOf="@+id/btnJoinStudy"
         app:layout_constraintVertical_bias="0.0"
         tools:ignore="TextContrastCheck" />
 
@@ -236,7 +251,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/guideline6"
         app:layout_constraintStart_toStartOf="@+id/guideline3"
-        app:layout_constraintTop_toBottomOf="@+id/btnGetAccessibility"
+        app:layout_constraintTop_toBottomOf="@+id/btnNotification"
         app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

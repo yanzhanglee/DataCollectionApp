@@ -5,6 +5,7 @@ import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -27,6 +28,7 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 
+import androidx.annotation.LongDef;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.view.accessibility.AccessibilityEventCompat;
@@ -49,7 +51,7 @@ import java.util.Random;
 
 
 public class Plugin extends Service {
-    private String TAG = Constants.TAG;
+    private String TAG = "debugPlugin";
 
     public static Plugin Plugin_instance;
 
@@ -61,7 +63,7 @@ public class Plugin extends Service {
     private int popUpLimit = 900000;
     private int popUpInterval = 300000; //Minimum Interval Between two pop-up, 300000ms = 5min
     private int SNSInterval = 10000; //Time for user to escape from Wechat SNS page, 10000ms = 10s
-    private int currAppDurationPeriod = 10000; // repeat every 10 sec.
+    private int currAppDurationPeriod = 5000; // repeat every 10 sec.
     Handler currAppDurationHandler = new Handler();
     Handler complianceChecks = new Handler();
     private Long lastComplianceCheck = null;
@@ -124,7 +126,6 @@ public class Plugin extends Service {
         return null;
     }
 
-    // never used
     private boolean doesNotificationExist(int notification_id){
         boolean exists = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -140,42 +141,37 @@ public class Plugin extends Service {
         return exists;
     }
 
-    private void notifyPluginStart(){
+    private void notifyUserPluginStart(){
+        String CHANNEL_ID = Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_CID;
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String CHANNEL_ID = Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_CID;
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Smartphone Use Service", NotificationManager.IMPORTANCE_DEFAULT);
-            channel.setSound(null, null);
-            channel.enableLights(false);
-            channel.enableVibration(false);
-            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).createNotificationChannel(channel);
-            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("Smartphone Use")
-                    .setContentText("Started App Usage Plugin")
-                    .build();
-            startForeground(Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_ID, notification);
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Post-destroy notification", NotificationManager.IMPORTANCE_DEFAULT);
+            manager.createNotificationChannel(channel);
         }
+        Intent resultIntent = new Intent(getApplicationContext(), MainActivity.class);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(getApplicationContext(), (int) System.currentTimeMillis(), resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.icon)
+                .setContentTitle("数据收集插件运行中")
+                .setContentText("请保持软件在后台运行")
+                .setOngoing(true).setContentIntent(resultPendingIntent)
+                .build();
+        notification.flags = Notification.FLAG_AUTO_CANCEL; //让消息被点击后自动消失，Notification.FLAG_NO_CLEAR 不会消失
+//      不能使用 manager.notify(Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_ID,notification);
+        startForeground(Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_ID, notification);
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        //AUTHORITY = Provider.getAuthority(this);
-        Log.d(TAG, "Plugin: onCreate");
+        Log.d("debugPlugin", "Plugin: onCreate");
         Plugin_instance = this;
         launcherPackageName = getLauncherName();
-
-        // Load correct phase!
-        SharedPreferences phaseSettings = getApplicationContext().getSharedPreferences("phaseSetting", 0);
-        String phaseVal = phaseSettings.getString("phase", "0");
-        if((!phaseVal.equals("0"))){
-            currentPhase = phaseVal;
-        }
-        if(!Constants.phases.contains(currentPhase))
-            currentPhase = Constants.phases.get(0); // NO_INTERVENTION
+        currentPhase = Constants.phases.get(0); // NO_INTERVENTION
         Log.d(TAG, "onCreate for Plugin: phase="+currentPhase);;
 
         loadWhitelist();
-        notifyPluginStart();
+        notifyUserPluginStart();
     }
 
     @Override
@@ -194,16 +190,15 @@ public class Plugin extends Service {
                 // Check if Applications Service is working
                 Log.d("debugPlugin","in ACTION_FIRST_RUN_APPUSEPLUGIN");
                 onStartActions();
-                notifyPluginStart();
+                notifyUserPluginStart();
                 complianceChecksRunnable.run();
                 break;
             case Constants.ACTION_ENSURE_PLUGIN_WORKING:
                 Log.d("debugPlugin","in ACTION_ENSURE_PLUGIN_WORKING");
                 onStartActions();
-                notifyPluginStart();
-//                if (!doesNotificationExist(Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_ID)){
-//                    notifyPluginStart();
-//                }
+                if (!doesNotificationExist(Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_ID)){
+                    notifyUserPluginStart();
+                }
                 if ((lastComplianceCheck == null) || ((System.currentTimeMillis() - lastComplianceCheck) > (complianceCheckTimer + 5*60*1000))) {
                     complianceChecksRunnable.run();
                 }
@@ -447,7 +442,6 @@ public class Plugin extends Service {
         currAppPrevTimeSpentToday = getPrevRowTimeSpentToday(nextPckg, "WeChat");
         Log.d(TAG + " time spent today ", Long.toString(currAppPrevTimeSpentToday));
         // If Randomization mode, fetch app summary
-        // TODO::what for???
         if (currentPhase.equals("NO_INTERVENTION")) {
             currAppSummary = getAppSummary(nextPckg);
             if (currAppSummary==null){
@@ -1170,6 +1164,7 @@ public class Plugin extends Service {
             }
             String currAppPackageName = (String) currAppData.get("package_name");
             inclusionCheck = !screenLock && !screenOff && whitelistedApps.contains(currAppPackageName);
+//                    && whitelistedApps.contains(currAppPackageName);
             if(inTime){
                 //Check Intime
                 if(Constants.enableWaitingPopUp[0] && inclusionCheck){
@@ -1585,8 +1580,9 @@ public class Plugin extends Service {
             }
         }
     }
+
     private void loadWhitelist(){
-        Log.d("debugBuildDB","in LoadWhiteList");
+        Log.d(TAG, "IN loadWhitelist()");
         String whereCond = "current = 1 AND whitelist = 1";
         Cursor wlCursor = getContentResolver().query(Provider.Applications_Whitelist.CONTENT_URI, null, whereCond, null, null);
         if (wlCursor != null) {
@@ -1599,9 +1595,9 @@ public class Plugin extends Service {
                     whitelistedApps.add(package_name_to_wl);
                 } while (wlCursor.moveToNext());
             }
-            Log.d(TAG, "loadWhitelist: current whitelist = "+whitelistedApps);
             wlCursor.close();
         }
+        Log.d(TAG, "FINISH loadWhitelist()");
     }
     // SYNC CODE
     private void autoSyncPlugin(){
@@ -1723,7 +1719,6 @@ public class Plugin extends Service {
                 .setContentText("Test At "+currentDateandTime).build();
         mgr.notify(Constants.SMARTPHONE_USE_NO_APP_USAGE_X_HOURS_ID, notification);
     }
-
     private void notifyNoAppDataForXHours(int X, boolean isEnabled){
         String CHANNEL_ID = Constants.SMARTPHONE_USE_NO_APP_USAGE_X_HOURS_CID;
         NotificationManager mgr = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);

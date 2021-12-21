@@ -4,21 +4,22 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.PermissionChecker;
-import androidx.core.view.accessibility.AccessibilityEventCompat;
-import androidx.core.view.accessibility.AccessibilityManagerCompat;
 
 import android.Manifest;
-import android.accessibilityservice.AccessibilityServiceInfo;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.AppOpsManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -27,7 +28,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -36,8 +36,6 @@ import android.os.PowerManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -46,42 +44,32 @@ import android.widget.Toast;
 import com.aware.Applications;
 import com.aware.Aware;
 import com.aware.Aware_Preferences;
-import com.aware.Locations;
 import com.aware.plugin.google.activity_recognition.Settings;
-import com.aware.ui.PermissionsHandler;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
     private String TAG = "debug";
     private boolean joinedStudy = false;
-    private boolean appUsageAuthed = false;
-    private boolean overlayAuthed = false;
-    private boolean allAuthAllowed = false;
-    private boolean accessibilityAuthed = false;
+    private boolean allDataAuthAllowed = false;
     private String userLabel;
     private String experimentID;
-
-    private ArrayList<String> REQUIRED_PERMISSIONS;
+    private boolean necessaryAuth = false;
 
     private static String KEY_SHP_DATA = "key_shp_data";
     private static String KEY_JOINED_STUDY_STATUS = "key_joined_study_status";
-    private static String KEY_APP_USAGE_AUTHED = "key_app_usage_authed";
-    private static String KEY_OVERLAY_AUTHED = "key_overlay_authed";
     private static String KEY_ALL_AUTHED = "key_all_authed";
     private static String KEY_USER_LABEL = "key_user_label";
     private static String KEY_EXPERIMENT_ID = "key_experiment_id";
-    private static String KEY_ACCESSIBILITY_AUTHED = "key_accessibility_authed";
 
     private JoinObserver joinObserver = new JoinObserver();
     Handler pluginWorkingHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d("debugPlugin","IN onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -92,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnJoinStudy = (Button) findViewById(R.id.btnJoinStudy);
         Button btnSyncData = (Button) findViewById(R.id.btnSyncData);
         Button btnGetAccessibility = (Button) findViewById(R.id.btnGetAccessibility);
+        Button btnGetNotification = (Button) findViewById(R.id.btnNotification);
         TextView tvUserLabel = (TextView) findViewById(R.id.tvUserLabel);
         TextView tvExperimentID = (TextView) findViewById(R.id.tvExperimentID);
         TextView tvDeviceInfo = (TextView) findViewById(R.id.tvDeviceInfo);
@@ -100,34 +89,46 @@ public class MainActivity extends AppCompatActivity {
         //通过SHP恢复缓存数据
         SharedPreferences shp = getSharedPreferences(KEY_SHP_DATA,Context.MODE_PRIVATE);
         joinedStudy = shp.getBoolean(KEY_JOINED_STUDY_STATUS, false);
-        appUsageAuthed = shp.getBoolean(KEY_APP_USAGE_AUTHED, false);
-        overlayAuthed = shp.getBoolean(KEY_OVERLAY_AUTHED, false);
-        allAuthAllowed = shp.getBoolean(KEY_ALL_AUTHED, false);
-        accessibilityAuthed = shp.getBoolean(KEY_ACCESSIBILITY_AUTHED, false);
+        allDataAuthAllowed = shp.getBoolean(KEY_ALL_AUTHED, false);
         userLabel = shp.getString(KEY_USER_LABEL,"未注册用户名");
         experimentID = shp.getString(KEY_EXPERIMENT_ID,"未注册实验");
-        //实例化shpEditor
-        SharedPreferences.Editor shpEditor = shp.edit();
+
+        //确认是否所有权限都获取
+        necessaryAuth = checkAllNecessaryAuthorities();
 
         //校验各权限状态
-        if (appUsageAuthed || isEnableAppUsageAccess(getApplicationContext())){
-            appUsageAuthed = true;
-            shpEditor.putBoolean(KEY_APP_USAGE_AUTHED, true);
-            shpEditor.apply();
+        if (isEnableAppUsageAccess(getApplicationContext())){
             btnGetAuthAppUsage.setText("\u2713 已开启访问应用使用权限");
             btnGetAuthAppUsage.setBackgroundColor(getResources().getColor(R.color.teal_700));
         }
-        if (overlayAuthed || android.provider.Settings.canDrawOverlays(getApplicationContext())){
-            overlayAuthed = true;
-            shpEditor.putBoolean(KEY_OVERLAY_AUTHED, true);
-            shpEditor.apply();
+        if (android.provider.Settings.canDrawOverlays(getApplicationContext())){
             btnGetAuthOverlay.setText("\u2713 已打开悬浮窗权限");
             btnGetAuthOverlay.setBackgroundColor(getResources().getColor(R.color.teal_700));
         }
-        if (allAuthAllowed){
+        if (allDataAuthAllowed){
             btnGetAllAuth.setText("\u2713 所有权限已获取成功");
             btnGetAllAuth.setBackgroundColor(getResources().getColor(R.color.teal_700));
         }
+        if (isSystemWhitelist()){
+            btnHowToAddWL.setText("\u2713 已添加至系统白名单");
+            btnHowToAddWL.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (Applications.isAccessibilityServiceActive(getApplicationContext())){
+            btnGetAccessibility.setText("\u2713 已开启无障碍权限");
+            btnGetAccessibility.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
+        if (notificationManagerCompat.areNotificationsEnabled()){
+            btnGetNotification.setText("\u2713 已打开通知权限");
+            btnGetNotification.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+
+        //获取设备信息
+        tvDeviceInfo.setText(getDeviceInfo());
+        //获取用户名和实验ID
+        tvUserLabel.setText(userLabel);
+        tvExperimentID.setText(experimentID);
+        //确认是否加入实验
         if (!joinedStudy){
             btnJoinStudy.setVisibility(View.VISIBLE);
             btnSyncData.setVisibility(View.INVISIBLE);
@@ -138,20 +139,6 @@ public class MainActivity extends AppCompatActivity {
             tvUserLabel.setText(userLabel);
             tvExperimentID.setText(experimentID);
         }
-        if (isSystemWhitelist()){
-            btnHowToAddWL.setText("\u2713 已添加至系统白名单");
-            btnHowToAddWL.setBackgroundColor(getResources().getColor(R.color.teal_700));
-        }
-        if (Applications.isAccessibilityServiceActive(getApplicationContext())){
-            btnGetAccessibility.setText("\u2713 已开启无障碍权限");
-            btnGetAccessibility.setBackgroundColor(getResources().getColor(R.color.teal_700));
-        }
-
-        //获取设备信息
-        tvDeviceInfo.setText(getDeviceInfo());
-        //获取用户名和实验ID
-        tvUserLabel.setText(userLabel);
-        tvExperimentID.setText(experimentID);
 
         //为各按钮添加事件
 
@@ -183,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
         btnGetAllAuth.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (allAuthAllowed){
+                if (allDataAuthAllowed){
                     btnGetAllAuth.setText("\u2713 所有权限已获取成功");
                     btnGetAllAuth.setBackgroundColor(getResources().getColor(R.color.teal_700));
                 }else{
@@ -213,6 +200,33 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        //获取消息通知权限
+        btnGetNotification.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                NotificationManagerCompat notification = NotificationManagerCompat.from(getApplicationContext());
+                boolean isEnabled = notification.areNotificationsEnabled();
+                if (isEnabled){
+                    btnGetNotification.setText("\u2713 已打开通知权限");
+                    btnGetNotification.setBackgroundColor(getResources().getColor(R.color.teal_700));
+                }else {
+                    Intent intent = new Intent();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        intent.setAction("android.settings.APP_NOTIFICATION_SETTINGS");
+                        intent.putExtra("android.provider.extra.APP_PACKAGE", getPackageName());
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {  //5.0
+                        intent.setAction("android.settings.APP_NOTIFICATION_SETTINGS");
+                        intent.putExtra("app_package", getPackageName());
+                        startActivity(intent);
+                    }else if (Build.VERSION.SDK_INT >= 15) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        intent.setAction("android.settings.APPLICATION_DETAILS_SETTINGS");
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                    }
+                    startActivity(intent);
+                }
+            }
+        });
 
         //注册加入实验
         btnJoinStudy.setOnClickListener(new View.OnClickListener() {
@@ -228,11 +242,13 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         userLabel = userLabelInput.getText().toString();
                         if (!userLabel.equals("")){
+                            necessaryAuth = checkAllNecessaryAuthorities();
                             Toast.makeText(getApplicationContext(),userLabel + " 正在加入实验 请稍等", Toast.LENGTH_SHORT).show();
 //                            Aware.joinStudy(getApplicationContext(), "https://intervention.ltd/awaredashboard/index.php/webservice/index/3/0crU1w1Fui0e");
+                            Aware.joinStudy(getApplicationContext(),"");
                             callAwareSettings(userLabel);
                             startPlugin();
-                            updateViewFromShp();
+                            updateView();
                         }
                     }
                 });
@@ -248,6 +264,7 @@ public class MainActivity extends AppCompatActivity {
         btnSyncData.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Toast.makeText(getApplicationContext(),"同步数据中",Toast.LENGTH_SHORT).show();
                 Intent sync = new Intent(Aware.ACTION_AWARE_SYNC_DATA);
                 sendBroadcast(sync);
                 syncPluginNow(Provider.getAuthority(getApplicationContext()));
@@ -257,82 +274,98 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
+        Log.d("debugPlugin", "IN onResume()");
         super.onResume();
-        updateViewFromShp();
-//        if (joinedStudy){
-//            self_permission_check();
-//            if (!Aware.IS_CORE_RUNNING){
-//                Intent aware = new Intent(getApplicationContext(), Aware.class);
-//                startService(aware);
-//            }
-//            if (!Aware.isStudy(getApplicationContext())){
-//                IntentFilter joinFilter = new IntentFilter(Aware.ACTION_JOINED_STUDY);
-//                registerReceiver(joinObserver, joinFilter);
-//            }
-//            if (!allAuthAllowed){
-//                callAwareSettings(Aware.getSetting(this, Aware_Preferences.DEVICE_LABEL));
-//                activatePeriodicSyncForAwarePlugins();
-//            }
+        updateView();
+//        if (!Aware.isStudy(getApplicationContext())){
+//            Log.d("debugPlugin","Aware.isStudy(getApplicationContext()): " + String.valueOf(Aware.isStudy(getApplicationContext())));
+//            IntentFilter joinFilter = new IntentFilter(Aware.ACTION_JOINED_STUDY);
+//            registerReceiver(joinObserver, joinFilter);
 //        }
-//        REQUIRED_PERMISSIONS = new ArrayList<>();
-////        REQUIRED_PERMISSIONS.add(Manifest.permission.BLUETOOTH);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.GET_ACCOUNTS);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.WRITE_SYNC_SETTINGS);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.READ_SYNC_SETTINGS);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.READ_SYNC_STATS);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.READ_CONTACTS);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.READ_PHONE_STATE);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.READ_CALL_LOG);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.READ_SMS);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.RECEIVE_BOOT_COMPLETED);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.FOREGROUND_SERVICE);
-//        REQUIRED_PERMISSIONS.add(Manifest.permission.ACTIVITY_RECOGNITION);
-//        boolean permissions_ok = true;
-//        for (String p : REQUIRED_PERMISSIONS) { //loop to check all the required permissions.
-//            if (PermissionChecker.checkSelfPermission(this, p) != PermissionChecker.PERMISSION_GRANTED) {
-//                permissions_ok = false;
-//                break;
-//            }
-//        }
-//        if (permissions_ok) {
-//            if (!Aware.IS_CORE_RUNNING) {
-//                Intent aware = new Intent(getApplicationContext(), Aware.class);
-//                startService(aware);
-//                Applications.isAccessibilityServiceActive(getApplicationContext());
-//                Aware.isBatteryOptimizationIgnored(getApplicationContext(), getPackageName());
-//            }
-//            boolean isLocServiceRunning = isMyServiceRunning(Locations.class);
-//            Log.d(TAG, "isLocServiceRunning "+ Boolean.toString(isLocServiceRunning));
-//            boolean isAppServiceRunning = isMyServiceRunning(Applications.class);
-//            Log.d(TAG, "isAppServiceRunning "+ Boolean.toString(isAppServiceRunning));
-//            if (Aware.isStudy(getApplicationContext())) {
-//            } else {
-//                IntentFilter joinFilter = new IntentFilter(Aware.ACTION_JOINED_STUDY);
-//                registerReceiver(joinObserver, joinFilter);
-//            }
-//        } else {
-//            finish();
-//            Intent permissions = new Intent(this, PermissionsHandler.class);
-//            permissions.putExtra(PermissionsHandler.EXTRA_REQUIRED_PERMISSIONS, REQUIRED_PERMISSIONS);
-//            permissions.putExtra(PermissionsHandler.EXTRA_REDIRECT_ACTIVITY, getPackageName() + "/" + getClass().getName());
-//            permissions.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-//            startActivity(permissions);
-//        }
-        Log.d("debugPlugin", "in onResume");
-        if (joinedStudy && allAuthAllowed && Applications.isAccessibilityServiceActive(getApplicationContext())){
-            Log.d("debugPlugin", "in onResume if()");
-//            callAwareSettings(Aware.getSetting(this, Aware_Preferences.DEVICE_LABEL));
-//            activatePeriodicSyncForAwarePlugins();
-//            startPlugin();
-//            if (isMyServiceRunning(Plugin.class)) {
-//                Log.d("debugPlugin", "PLUGIN is still running");
-//            }
-//            else{
-//                Log.d("debugPlugin", "PLUGIN is not running");
-//            }
-//            pluginWorkingRunnable.run();
+        String device_id = Aware.getSetting(this, Aware_Preferences.DEVICE_ID);
+        String user_name = Aware.getSetting(this,Aware_Preferences.DEVICE_LABEL);
+        Log.d("debugPlugin", "device_id: "+ device_id + " user_name: "+user_name);
+        Log.d("debugPlugin","Aware.isStudy(getApplicationContext()): " + String.valueOf(Aware.isStudy(getApplicationContext())));
+        Log.d("debugPlugin","isPLUGIN running: "+isMyServiceRunning(Plugin.class));
+        if (joinedStudy && necessaryAuth){
+            Log.d("debugPlugin", "IN onResume if(joinedStudy && necessaryAuth)");
+            if (!Aware.IS_CORE_RUNNING){
+                Log.d("debugPlugin", "IN if (!Aware.IS_CORE_RUNNING) ");
+                Intent aware = new Intent(getApplicationContext(), Aware.class);
+                startService(aware);
+            }
+            activatePeriodicSyncForAwarePlugins();
+            pluginWorkingRunnable.run();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d("debugPlugin","onDestory()");
+        super.onDestroy();
+        //在应用被杀掉时，提示用户重新打开
+        notifyUserBeforeDestroy();
+    }
+
+    private void updateView(){
+        Button btnGetAuthAppUsage = (Button) findViewById(R.id.btnGetAuth1);
+        Button btnGetAuthOverlay = (Button) findViewById(R.id.btnGetAuth2);
+        Button btnGetAllAuth = (Button) findViewById(R.id.btnGetAuth3);
+        Button btnHowToAddWL = (Button) findViewById(R.id.btnAddWhiteList);
+        Button btnJoinStudy = (Button) findViewById(R.id.btnJoinStudy);
+        Button btnSyncData = (Button) findViewById(R.id.btnSyncData);
+        Button btnGetAccessibility = (Button) findViewById(R.id.btnGetAccessibility);
+        Button btnGetNotification = (Button) findViewById(R.id.btnNotification);
+        TextView tvUserLabel = (TextView) findViewById(R.id.tvUserLabel);
+        TextView tvExperimentID = (TextView) findViewById(R.id.tvExperimentID);
+        TextView tvDeviceInfo = (TextView) findViewById(R.id.tvDeviceInfo);
+        TextView tvDebug = (TextView) findViewById(R.id.tvDebug);
+
+        //通过SHP恢复缓存数据
+        SharedPreferences shp = getSharedPreferences(KEY_SHP_DATA,Context.MODE_PRIVATE);
+        joinedStudy = shp.getBoolean(KEY_JOINED_STUDY_STATUS, false);
+        allDataAuthAllowed = shp.getBoolean(KEY_ALL_AUTHED, false);
+        userLabel = shp.getString(KEY_USER_LABEL,"用户名（默认值）");
+        experimentID = shp.getString(KEY_EXPERIMENT_ID,"实验ID（默认值）");
+
+        //校验各权限状态
+        if (isEnableAppUsageAccess(getApplicationContext())){
+            btnGetAuthAppUsage.setText("\u2713 已开启访问应用使用权限");
+            btnGetAuthAppUsage.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (android.provider.Settings.canDrawOverlays(getApplicationContext())){
+            btnGetAuthOverlay.setText("\u2713 已打开悬浮窗权限");
+            btnGetAuthOverlay.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (allDataAuthAllowed){
+            btnGetAllAuth.setText("\u2713 所有权限已获取成功");
+            btnGetAllAuth.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (isSystemWhitelist()){
+            btnHowToAddWL.setText("\u2713 已添加至系统白名单");
+            btnHowToAddWL.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (Applications.isAccessibilityServiceActive(getApplicationContext())){
+            btnGetAccessibility.setText("\u2713 已开启无障碍权限");
+            btnGetAccessibility.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
+        if (notificationManagerCompat.areNotificationsEnabled()){
+            btnGetNotification.setText("\u2713 已打开通知权限");
+            btnGetNotification.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+
+        if (!joinedStudy){
+            btnJoinStudy.setVisibility(View.VISIBLE);
+            btnSyncData.setVisibility(View.INVISIBLE);
+        }else{
+            btnJoinStudy.setVisibility(View.INVISIBLE);
+            btnSyncData.setVisibility(View.VISIBLE);
+            tvDebug.setText("已加入实验");
+            tvUserLabel.setText(userLabel);
+            tvExperimentID.setText(experimentID);
+        }
+
     }
 
     private String getDeviceInfo() {
@@ -341,16 +374,31 @@ public class MainActivity extends AppCompatActivity {
         return deviceInfo;
     }
 
+    private boolean checkAllNecessaryAuthorities(){
+        if (allDataAuthAllowed){
+            if (Applications.isAccessibilityServiceActive(getApplicationContext())){
+                  if (isSystemWhitelist()){
+                      return true;
+                  }else {
+                      Toast.makeText(this,"未加入系统白名单",Toast.LENGTH_SHORT).show();
+                  }
+            } else {
+                Toast.makeText(this,"未打开无障碍权限",Toast.LENGTH_SHORT).show();
+            }
+        }else {
+            Toast.makeText(this,"未完成数据权限获取",Toast.LENGTH_SHORT).show();
+        }
+        return false;
+    }
+
     private void activatePeriodicSyncForAwarePlugins(){
         // activate periodic sync for GAR and Fused Loc
-        Log.d(TAG, "inside activatePeriodicSyncForAwarePlugins");
         String garAuthority = com.aware.plugin.google.activity_recognition.Google_AR_Provider.getAuthority(getApplicationContext());
-        String fusedLocAuthority = com.aware.plugin.google.fused_location.Provider.getAuthority(getApplicationContext());
+//        String fusedLocAuthority = com.aware.plugin.google.fused_location.Provider.getAuthority(getApplicationContext());
         activatePeriodicSync(garAuthority);
-        activatePeriodicSync(fusedLocAuthority);
+//        activatePeriodicSync(fusedLocAuthority);
     }
     private void activatePeriodicSync(String authority){
-        Log.d(TAG, "inside activatePeriodicSync "+authority);
         boolean isSyncEnabled = Aware.isSyncEnabled(getApplicationContext(), authority);
         if (Aware.isStudy(getApplicationContext()) && !isSyncEnabled){
             ContentResolver.setIsSyncable(Aware.getAWAREAccount(getApplicationContext()), authority, 1);
@@ -364,6 +412,27 @@ public class MainActivity extends AppCompatActivity {
         }
         boolean iSyncEnabled_after = Aware.isSyncEnabled(getApplicationContext(), authority);
         Log.d(TAG, authority+" Sync "+Boolean.toString(iSyncEnabled_after));
+    }
+
+    private void notifyUserBeforeDestroy(){
+        Log.d("debugPlugin","notifyUserBeforeDestroy()");
+        String CHANNEL_ID = Constants.SMARTPHONE_USE_CRASH_NOTIFICATION_CID2;
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Post-destroy notification", NotificationManager.IMPORTANCE_HIGH);
+            manager.createNotificationChannel(channel);
+        }
+        Intent resultIntent = new Intent(getApplicationContext(), MainActivity.class);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(getApplicationContext(), (int) System.currentTimeMillis(), resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.icon)
+                .setContentTitle(getResources().getString(R.string.notification_title_post_destroy))
+                .setContentText(getResources().getString(R.string.notification_text_post_destroy))
+                .setOngoing(true).setContentIntent(resultPendingIntent)
+                .build();
+        notification.flags = Notification.FLAG_AUTO_CANCEL; //让消息被点击后自动消失，Notification.FLAG_NO_CLEAR 不会消失
+        manager.notify(Constants.SMARTPHONE_USE_CRASH_NOTIFICATION_ID2,notification);
+        Log.d("debugPlugin","成功发送Notification");
     }
 
     private void syncPluginNow(String authority){
@@ -408,71 +477,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateViewFromShp(){
-        Button btnGetAuthAppUsage = (Button) findViewById(R.id.btnGetAuth1);
-        Button btnGetAuthOverlay = (Button) findViewById(R.id.btnGetAuth2);
-        Button btnGetAllAuth = (Button) findViewById(R.id.btnGetAuth3);
-        Button btnHowToAddWL = (Button) findViewById(R.id.btnAddWhiteList);
-        Button btnJoinStudy = (Button) findViewById(R.id.btnJoinStudy);
-        Button btnSyncData = (Button) findViewById(R.id.btnSyncData);
-        Button btnGetAccessibility = (Button) findViewById(R.id.btnGetAccessibility);
-        TextView tvUserLabel = (TextView) findViewById(R.id.tvUserLabel);
-        TextView tvExperimentID = (TextView) findViewById(R.id.tvExperimentID);
-        TextView tvDeviceInfo = (TextView) findViewById(R.id.tvDeviceInfo);
-        TextView tvDebug = (TextView) findViewById(R.id.tvDebug);
-
-        //通过SHP恢复缓存数据
-        SharedPreferences shp = getSharedPreferences(KEY_SHP_DATA,Context.MODE_PRIVATE);
-        joinedStudy = shp.getBoolean(KEY_JOINED_STUDY_STATUS, false);
-        appUsageAuthed = shp.getBoolean(KEY_APP_USAGE_AUTHED, false);
-        overlayAuthed = shp.getBoolean(KEY_OVERLAY_AUTHED, false);
-        allAuthAllowed = shp.getBoolean(KEY_ALL_AUTHED, false);
-        accessibilityAuthed = shp.getBoolean(KEY_ACCESSIBILITY_AUTHED, false);
-        userLabel = shp.getString(KEY_USER_LABEL,"用户名（默认值）");
-        experimentID = shp.getString(KEY_EXPERIMENT_ID,"实验ID（默认值）");
-
-        SharedPreferences.Editor shpEditor = shp.edit();
-
-        //校验各权限状态
-        if (appUsageAuthed == true || isEnableAppUsageAccess(getApplicationContext())){
-            appUsageAuthed = true;
-            shpEditor.putBoolean(KEY_APP_USAGE_AUTHED, true);
-            shpEditor.apply();
-            btnGetAuthAppUsage.setText("\u2713 已开启访问应用使用权限");
-            btnGetAuthAppUsage.setBackgroundColor(getResources().getColor(R.color.teal_700));
-        }
-        if (overlayAuthed == true || android.provider.Settings.canDrawOverlays(getApplicationContext())){
-            overlayAuthed = true;
-            shpEditor.putBoolean(KEY_OVERLAY_AUTHED, true);
-            shpEditor.apply();
-            btnGetAuthOverlay.setText("\u2713 已打开悬浮窗权限");
-            btnGetAuthOverlay.setBackgroundColor(getResources().getColor(R.color.teal_700));
-        }
-        if (allAuthAllowed){
-            btnGetAllAuth.setText("\u2713 所有权限已获取成功");
-            btnGetAllAuth.setBackgroundColor(getResources().getColor(R.color.teal_700));
-        }
-        if (!joinedStudy){
-            btnJoinStudy.setVisibility(View.VISIBLE);
-            btnSyncData.setVisibility(View.INVISIBLE);
-        }else{
-            btnJoinStudy.setVisibility(View.INVISIBLE);
-            btnSyncData.setVisibility(View.VISIBLE);
-            tvDebug.setText("已加入实验");
-            tvUserLabel.setText(userLabel);
-            tvExperimentID.setText(experimentID);
-        }
-        if (isSystemWhitelist()){
-            btnHowToAddWL.setText("\u2713 已添加至系统白名单");
-            btnHowToAddWL.setBackgroundColor(getResources().getColor(R.color.teal_700));
-        }
-        if (Applications.isAccessibilityServiceActive(getApplicationContext())){
-            btnGetAccessibility.setText("\u2713 已开启无障碍权限");
-            btnGetAccessibility.setBackgroundColor(getResources().getColor(R.color.teal_700));
-        }
-    }
-
-    private void joinAwareStudy(){
+    private void joinRemoteAwareStudy(){
         final String awareUri = "";
         Aware.joinStudy(getApplicationContext(), awareUri);
     }
@@ -565,11 +570,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, 0);
             }
             else {
-                SharedPreferences shp = getSharedPreferences(KEY_SHP_DATA,Context.MODE_PRIVATE);
-                SharedPreferences.Editor shpEditor = shp.edit();
-                overlayAuthed = true;
-                shpEditor.putBoolean(KEY_OVERLAY_AUTHED, true);
-                shpEditor.apply();
                 Toast.makeText(getApplicationContext(), "已开启悬浮窗权限", Toast.LENGTH_SHORT).show();
             }
         }
@@ -582,11 +582,6 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:" + getPackageName()));
                 startActivityForResult(intent, 0);
             }else {
-                SharedPreferences shp = getSharedPreferences(KEY_SHP_DATA,Context.MODE_PRIVATE);
-                SharedPreferences.Editor shpEditor = shp.edit();
-                appUsageAuthed = true;
-                shpEditor.putBoolean(KEY_APP_USAGE_AUTHED, true);
-                shpEditor.apply();
                 Toast.makeText(getApplicationContext(), "已允许访问应用使用权限", Toast.LENGTH_SHORT).show();
             }
         }

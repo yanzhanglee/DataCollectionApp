@@ -30,5 +30,8 @@
     <string name="kill_content_cn">Please Restart the APP after kill it.</string>
     <string name="get_accessibility_aware">在无障碍设置中启用Aware</string>
     <string name="provider_applicationsdiff" translatable="false">com.example.datacollectionapp.provider.applicationsdiff</string>
-    <string name="unnecessary_auth">-- 以下为非必需权限 --</string>
+    <string name="unnecessary_auth">-- 以下为非必需权限 供调试 --</string>
+    <string name="get_notification_auth">开启通知权限</string>
+    <string name="notification_title_post_destroy">请点击此处或点击App图标，重新启动应用</string>
+    <string name="notification_text_post_destroy">您已关闭数据收集App，请重新开启！</string>
 </resources>
