@@ -244,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
                         if (!userLabel.equals("")){
                             necessaryAuth = checkAllNecessaryAuthorities();
                             Toast.makeText(getApplicationContext(),userLabel + " 正在加入实验 请稍等", Toast.LENGTH_SHORT).show();
-//                            Aware.joinStudy(getApplicationContext(), "https://intervention.ltd/awaredashboard/index.php/webservice/index/3/0crU1w1Fui0e");
+//                            Aware.joinStudy(getApplicationContext(), "http://awaredata.xyz:8080/index.php/1/4lph4num3ric");
                             Aware.joinStudy(getApplicationContext(),"");
                             callAwareSettings(userLabel);
                             startPlugin();

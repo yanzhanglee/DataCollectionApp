@@ -164,11 +164,11 @@ public class Plugin extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d("debugPlugin", "Plugin: onCreate");
+        Log.d(TAG, "Plugin: onCreate");
         Plugin_instance = this;
         launcherPackageName = getLauncherName();
         currentPhase = Constants.phases.get(0); // NO_INTERVENTION
-        Log.d(TAG, "onCreate for Plugin: phase="+currentPhase);;
+        Log.d(TAG, "onCreate for Plugin: phase=" + currentPhase);;
 
         loadWhitelist();
         notifyUserPluginStart();
@@ -267,7 +267,7 @@ public class Plugin extends Service {
                 currAppDuration = System.currentTimeMillis() - (Long) currAppData.get("timestamp");
                 Log.d(TAG + " CurrAppDuration", currAppDuration.toString());
                 // Administer intervention
-                administerIntervention();
+//                administerIntervention();
             }
             prevIsAppUsageEnabled = isAppUsageEnabled;
             // Delay in updating app duration
@@ -396,13 +396,15 @@ public class Plugin extends Service {
             toInsertData.put("end_timestamp_day", new Date(nextAppTimeStamp).toString());
             toInsertData.put("end_timestamp", Long.toString(nextAppTimeStamp));
             toInsertData.put("is_launcher", String.valueOf(islauncher));
-            insertDataIntoAppDiff(toInsertData); // insert data -- need to debug
+
+            insertDataIntoAppDiff(toInsertData); // insert data
+
             String currPckgName = (String) currAppData.get("package_name");
 //            if (currentPhase.equals("NO_INTERVENTION")) { // update app summary only during baseline phase
-                updateAppSummary(currPckgName, currAppTimeSpent,currentPhase);
-                if (!islauncher && !excCalcApps.contains(currPckgName)) {
-                    updateAppSummary("OVERALL", currAppTimeSpent,currentPhase);
-                }
+            updateAppSummary(currPckgName, currAppTimeSpent,currentPhase);
+            if (!islauncher && !excCalcApps.contains(currPckgName)) {
+                updateAppSummary("OVERALL", currAppTimeSpent,currentPhase);
+            }
 //            }
             Log.d(TAG + " TO INSERT ", toInsertData.toString());
         }
@@ -474,7 +476,8 @@ public class Plugin extends Service {
                 String nextPckg = (String) data.get("package_name");
                 Log.d(TAG, "Switched to "+nextPckg);
                 String currAppPackageName = (String) currAppData.get("package_name");
-                //Log.d(TAG, "USING CURR: " + currAppPackageName + " NEXT " + nextPckg + " USING TIME: " + System.currentTimeMillis());
+
+                Log.d(TAG, "USING CURR: " + currAppPackageName + " NEXT " + nextPckg + " USING TIME: " + System.currentTimeMillis());
                 Constants.lastUsingTime.put(currAppPackageName, System.currentTimeMillis());
                 /*if (currAppData.size() > 0 && !nextPckg.equals((String) currAppData.get("package_name"))){
                     Constants.lastUsingTime.put(currAppPackageName, System.currentTimeMillis());
@@ -485,21 +488,17 @@ public class Plugin extends Service {
                 }else if((Constants.enterAppCounter.get(currAppPackageName) % 2) == 0){
                     Constants.lastUsingTime.put(currAppPackageName, System.currentTimeMillis());
                 }*/
-                if (nextPckg.equals(PluginConstants.testApp)){
-                    notifySwitchToTestForDebug();
-                    Log.d(TAG, "Test app switched ");
-                }
-                Log.d(TAG, "onForeground: here1");
+
                 // Exclude excCalc Apps such as Smartphone Use first
                 if (excCalcApps.contains(nextPckg)){
                     return;
                 }
-                Log.d(TAG, "onForeground: here2");
+
                 // Exclude keyboard
                 if (editorPackageName == null){
                     editorPackageName = getEditorName();
                 }
-                Log.d(TAG, "onForeground: here3");
+
                 if (nextPckg.toLowerCase().contains(securePackageName.toLowerCase())){
                     Log.d(TAG, "onForeground: in is securePackage, LastOneIsEditorPackage = "+LastOneIsEditorPackage);
                     LastOneIsEditorPackage = true;
@@ -510,28 +509,28 @@ public class Plugin extends Service {
                     LastOneIsEditorPackage = true;
                     return; // Meaning do NOTHING if package name of app should be skipped from calculations
                 }
-                Log.d(TAG, "onForeground: here4");
-                if (editorPackageName!=null && nextPckg.toLowerCase().contains(launcherPackageName.toLowerCase())){
-                    Log.d(TAG, "onForeground: in is launcherPackageName, LastOneIsEditorPackage = "+LastOneIsEditorPackage);
-                    if(!LastOneIsEditorPackage) {
-                        currAppData = data;
-                    }
-                    return; // Meaning do NOTHING if package name of app should be skipped from calculations
-                }
-                Log.d(TAG, "onForeground: here5");
+
+//                if (editorPackageName!=null && nextPckg.toLowerCase().contains(launcherPackageName.toLowerCase())){
+//                    Log.d(TAG, "onForeground: in is launcherPackageName, LastOneIsEditorPackage = "+ LastOneIsEditorPackage);
+//                    if(!LastOneIsEditorPackage) {
+//                        currAppData = data;
+//                    }
+//                    return; // Meaning do NOTHING if package name of app should be skipped from calculations
+//                }
+
                 // Exclude if nextApp == currApp due to orientation changes or keyboard in between
                 if (currAppData.size() > 0 && nextPckg.equals((String) currAppData.get("package_name"))){
                     if(firstEqual){
                         Constants.lastEqualTime[0] = System.currentTimeMillis();
                     }
-                    if((System.currentTimeMillis() - Constants.lastEqualTime[0]) < popUpInterval){
-                        return;
-                    }
+//                    if((System.currentTimeMillis() - Constants.lastEqualTime[0]) < popUpInterval){
+//                        return;
+//                    }
                     Constants.lastEqualTime[0] = System.currentTimeMillis();
                 }else {
                     firstEqual = false;
                 }
-                Log.d(TAG, "onForeground: here6");
+
                 // End timeout when app is switched (does not end when keyboard is pulled out but that should never happen)
                 if (timeoutOn){
                     Log.d(TAG, "Timeout sending END INTENT");
@@ -542,15 +541,18 @@ public class Plugin extends Service {
                     Log.d(TAG, "administerIntervention: Timeout.class start 2");
                     startService(timeoutEndIntent);
                 }
-                Log.d(TAG, "onForeground: here7");
+
                 //Remove tracking duration for previous app
                 if (currAppDuration != null) {
                     currAppDurationHandler.removeCallbacks(appDurationRunnable);
                 }
+
                 // Compute time spent on previous app
                 long nextAppTimeStamp = (long) data.get("timestamp");
 //                Log.d(TAG, "calling nextAppTimeStamp with "+nextAppTimeStamp);
+
                 logAndResetTimeouts(nextAppTimeStamp); // reset interventions for the new app
+
                 if (currAppData.size() > 0) {
                     long currAppTimeStamp = (long) currAppData.get("timestamp");
                     long currAppTimeSpent = nextAppTimeStamp - currAppTimeStamp;
@@ -802,10 +804,11 @@ public class Plugin extends Service {
         return prevRowTimeSpentToday;
     }
     public void insertDataIntoAppDiff(ContentValues cv) {
+        Log.d(TAG, "IN insertDataIntoAppDiff");
         try {
-            //Log.d(TAG, Provider.Applications_Diff.CONTENT_URI.toString());
+            Log.d(TAG, Provider.Applications_Diff.CONTENT_URI.toString());
             getContentResolver().insert(Provider.Applications_Diff.CONTENT_URI, cv);
-            //Log.d(TAG, "Success insertion into Applications_Diff");
+            Log.d(TAG, "Success insertion into Applications_Diff");
         } catch (Exception ex) {
             Log.e(TAG, "insert exception", ex);
             Log.e(TAG, "Failed insertion into Applications_Diff");
@@ -842,6 +845,7 @@ public class Plugin extends Service {
     private Long getMeanDur(Long sumDur, int countS){
         return (sumDur/countS);
     }
+
     public void updateAppSummary(String pckg, long time_spent, String currentPhase) {
         ContentValues appSummary = getAppSummary(pckg);
         String device_id = Aware.getSetting(getApplicationContext(), Aware_Preferences.DEVICE_ID);
@@ -1308,35 +1312,35 @@ public class Plugin extends Service {
             int probaDeno = 4;
             // RANDOMIZATION CHECK
             boolean inclusionCheck = !timeoutOn && !screenLock && !screenOff && whitelistedApps.contains(currAppPackageName) && timeSpentTodayInSec > 0 && burdenOkCurrApp && burdenOk && (!currAppIsLauncher) && !excTimeoutApps.contains(currAppPackageName);
-            Log.d(TAG, "inclusion check "+inclusionCheck+", in Wl "+whitelistedApps.contains(currAppPackageName)+", current whitelist "+whitelistedApps.toString()+", current app "+currAppPackageName);
+            Log.d(TAG, "inclusion check: "+inclusionCheck+", in Wl "+whitelistedApps.contains(currAppPackageName)+", current whitelist "+whitelistedApps.toString()+", current app "+currAppPackageName);
 
-            boolean found_flag = true;
-            if(currAppPackageName.equals(Constants.WeChatPackageName)) {
-                found_flag = false;
-                Log.d(TAG, "**administerIntervention: currentApp = "+currentComponentName.flattenToShortString());
-                String[] WeChatActivities;
-                if(Constants.WithPyq[0] && Constants.WithMini[0]){
-                    WeChatActivities = Constants.WeChatActivities_with_both;
-                }else if(Constants.WithPyq[0]){
-                    WeChatActivities = Constants.WeChatActivities_with_pyq;
-                }else if(Constants.WithMini[0]){
-                    WeChatActivities = Constants.WeChatActivities_with_mini;
-                }else {
-                    WeChatActivities = Constants.WeChatActivities_without_both;
-                }
-                for(String bad_activity:WeChatActivities) {
-                    if(bad_activity.equals(currentComponentName.flattenToShortString())) {
-                        found_flag = true;
-                        break;
-                    }
-                }
-                Log.d(TAG, "**administerIntervention: found_flag = "+found_flag);
-            }
-            // other parts of WeChat excluded
-            if(!found_flag) {
-                Log.d(TAG, "**administerIntervention: just return");
-                return;
-            }
+//            boolean found_flag = true;
+//            if(currAppPackageName.equals(Constants.WeChatPackageName)) {
+//                found_flag = false;
+//                Log.d(TAG, "**administerIntervention: currentApp = "+currentComponentName.flattenToShortString());
+//                String[] WeChatActivities;
+//                if(Constants.WithPyq[0] && Constants.WithMini[0]){
+//                    WeChatActivities = Constants.WeChatActivities_with_both;
+//                }else if(Constants.WithPyq[0]){
+//                    WeChatActivities = Constants.WeChatActivities_with_pyq;
+//                }else if(Constants.WithMini[0]){
+//                    WeChatActivities = Constants.WeChatActivities_with_mini;
+//                }else {
+//                    WeChatActivities = Constants.WeChatActivities_without_both;
+//                }
+//                for(String bad_activity:WeChatActivities) {
+//                    if(bad_activity.equals(currentComponentName.flattenToShortString())) {
+//                        found_flag = true;
+//                        break;
+//                    }
+//                }
+//                Log.d(TAG, "**administerIntervention: found_flag = "+found_flag);
+//            }
+//            // other parts of WeChat excluded
+//            if(!found_flag) {
+//                Log.d(TAG, "**administerIntervention: just return");
+//                return;
+//            }
             if (inclusionCheck) {
                 String appOrOverall = "NONE";
                 String pckgUsed = "";

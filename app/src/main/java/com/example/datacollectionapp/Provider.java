@@ -26,7 +26,7 @@ public class Provider extends ContentProvider {
     public static String AUTHORITY = "com.example.datacollectionapp.provider.applicationsdiff";
     public static final int DATABASE_VERSION = 1;
     public static String DATABASE_NAME = "plugin_applications_diff.db";
-    public static String TAG = "debug";
+    public static String TAG = "DBdebug";
 
     //Add here your database table names, as many as you need
     public static final String[] DATABASE_TABLES = {
@@ -55,6 +55,7 @@ public class Provider extends ContentProvider {
     private static final int APPWL_ID = 14;
     private static final int APPPHASES = 15;
     private static final int APPPHASES_ID = 16;
+
     // These are the columns that we need to sync data, don't change this!
     public interface AWAREColumns extends BaseColumns {
         String _ID = "_id";
@@ -528,7 +529,7 @@ public class Provider extends ContentProvider {
     @Nullable
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
-        //Log.d(TAG, "insert called");
+        Log.d(TAG, "INSERT called");
 
         boolean initsuccess = initialiseDatabase();
         //Log.d(TAG + " INIT SUCCESS ", Boolean.toString(initsuccess));
@@ -637,6 +638,7 @@ public class Provider extends ContentProvider {
     @Nullable
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+        Log.d(TAG, "Query called");
 
         initialiseDatabase();
 
@@ -735,7 +737,7 @@ public class Provider extends ContentProvider {
 
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-
+        Log.d(TAG, "Update called");
         initialiseDatabase();
 
         database.beginTransaction();
