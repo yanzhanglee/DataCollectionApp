@@ -43,7 +43,9 @@
         android:description="@string/write_permission"
         android:icon="@drawable/ic_launcher_settings"
         android:label="Write to AWARE&apos;s Context data"
-        android:protectionLevel="normal" />
+        android:protectionLevel="normal"
+        android:sharedUserId="android.uid.system"
+        />
 
     <application
         android:allowBackup="true"
@@ -74,7 +76,7 @@
             android:name="com.aware.Applications"
             android:enabled="true"
             android:exported="true"
-            android:label="数据收集（AWARE）"
+            android:label="AWARE"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             tools:replace="android:enabled">
             <intent-filter>
@@ -110,6 +112,7 @@
         <service
             android:name=".Timeout"
             android:exported="false" />
+        <service android:name=".ScheduleUploadTaskService"/>
 
         <receiver android:name=".Autostart">
             <intent-filter>

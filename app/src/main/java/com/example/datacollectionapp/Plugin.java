@@ -154,6 +154,20 @@ public class Plugin extends Service {
                     .build();
             startForeground(Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_ID, notification);
         }
+<<<<<<< Updated upstream
+=======
+        Intent resultIntent = new Intent(getApplicationContext(), MainActivity.class);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(getApplicationContext(), (int) System.currentTimeMillis(), resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.icon)
+                .setContentTitle("应用运行中")
+                .setContentText("请保持软件在后台运行")
+                .setOngoing(true).setContentIntent(resultPendingIntent)
+                .build();
+        notification.flags = Notification.FLAG_AUTO_CANCEL; //让消息被点击后自动消失，Notification.FLAG_NO_CLEAR 不会消失
+//      不能使用 manager.notify(Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_ID,notification);
+        startForeground(Constants.SMARTPHONE_USE_PLUGIN_NOTIFICATION_ID, notification);
+>>>>>>> Stashed changes
     }
 
     @Override

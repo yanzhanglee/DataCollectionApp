@@ -6,6 +6,22 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <TextView
+        android:id="@+id/tvTitleLastUpdate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/last_update_time"
+        android:textColor="#0D47A1"
+        android:textSize="16sp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/guideline3"
+        app:layout_constraintTop_toBottomOf="@+id/tvDeviceID"
+        app:layout_constraintVertical_bias="0.0" />
+
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline3"
         android:layout_width="wrap_content"
@@ -50,6 +66,7 @@
         android:text="@string/experiment_id"
         android:textColor="#0D47A1"
         android:textSize="16sp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
@@ -86,18 +103,32 @@
         tools:text="is81ks9as-218sa8s9-281jsa8s" />
 
     <TextView
-        android:id="@+id/tvExperimentID"
+        android:id="@+id/tvDeviceID"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="@string/blank"
+        android:text="@string/device_id_show"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/guideline3"
         app:layout_constraintTop_toBottomOf="@+id/tvTitleExperiment"
-        app:layout_constraintVertical_bias="0.0"
-        tools:text="is81ks9as-218sa8s9-281jsa8s" />
+        app:layout_constraintVertical_bias="0.0" />
+
+    <TextView
+        android:id="@+id/tvLastUpdate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/last_update"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/guideline3"
+        app:layout_constraintTop_toBottomOf="@+id/tvTitleLastUpdate"
+        app:layout_constraintVertical_bias="0.0" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline4"
@@ -114,6 +145,7 @@
         android:backgroundTint="@color/purple_700"
         android:text="@string/getAuth1"
         android:textSize="16sp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/guideline6"
         app:layout_constraintStart_toStartOf="@+id/guideline3"
@@ -128,19 +160,23 @@
         android:backgroundTint="@color/purple_700"
         android:text="@string/getAuth2"
         android:textSize="16sp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/guideline6"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/guideline3"
         app:layout_constraintTop_toBottomOf="@+id/btnGetAuth1"
         app:layout_constraintVertical_bias="0.0"
-        tools:ignore="TouchTargetSizeCheck" />
+        tools:ignore="TouchTargetSizeCheck"
+        tools:visibility="invisible" />
 
     <Button
         android:id="@+id/btnGetAuth3"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:backgroundTint="@color/purple_700"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:text="@string/getAuth3"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -156,6 +192,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:backgroundTint="@color/purple_700"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:text="@string/addWhitelist"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -171,6 +209,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:backgroundTint="@color/purple_700"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:text="@string/get_accessibility_aware"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -180,6 +220,26 @@
         app:layout_constraintTop_toBottomOf="@+id/btnAddWhiteList"
         app:layout_constraintVertical_bias="0.0" />
 
+<<<<<<< Updated upstream
+=======
+    <Button
+        android:id="@+id/btnNotification"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@color/purple_700"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="@string/get_notification_auth"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/guideline6"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/guideline3"
+        app:layout_constraintTop_toBottomOf="@+id/btnGetAccessibility"
+        app:layout_constraintVertical_bias="0.0" />
+
+>>>>>>> Stashed changes
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline6"
         android:layout_width="wrap_content"
@@ -190,15 +250,14 @@
     <TextView
         android:id="@+id/tvDebug"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="27dp"
+        android:layout_marginBottom="8dp"
         android:text="@string/blank"
         android:textSize="20sp"
-        app:layout_constraintBottom_toTopOf="@+id/guideline4"
+        app:layout_constraintBottom_toTopOf="@+id/btnGetAuth3"
         app:layout_constraintEnd_toStartOf="@+id/guideline6"
         app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/guideline3"
-        app:layout_constraintTop_toBottomOf="@+id/tvExperimentID"
-        app:layout_constraintVertical_bias="0.45" />
+        app:layout_constraintStart_toStartOf="@+id/guideline3" />
 
     <Button
         android:id="@+id/btnJoinStudy"
@@ -225,7 +284,20 @@
         app:layout_constraintStart_toStartOf="@+id/guideline3"
         app:layout_constraintTop_toBottomOf="@+id/btnJoinStudy"
         app:layout_constraintVertical_bias="0.0"
-        tools:ignore="TextContrastCheck" />
+        tools:ignore="TextContrastCheck"
+        />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/btnSyncData"
+        app:layout_constraintRight_toRightOf="@+id/btnSyncData"
+        android:text="日志输出数据"
+        android:id="@+id/btn_log"
+        android:visibility="gone"
+
+        />
+
 
     <TextView
         android:id="@+id/tvUnnecessary"
@@ -233,6 +305,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="@string/unnecessary_auth"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/guideline6"
         app:layout_constraintStart_toStartOf="@+id/guideline3"

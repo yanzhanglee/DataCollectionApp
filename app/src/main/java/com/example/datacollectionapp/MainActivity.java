@@ -23,11 +23,14 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+<<<<<<< Updated upstream
 import android.content.pm.ResolveInfo;
+=======
+import android.database.Cursor;
+>>>>>>> Stashed changes
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -64,9 +67,15 @@ public class MainActivity extends AppCompatActivity {
     private boolean allAuthAllowed = false;
     private boolean accessibilityAuthed = false;
     private String userLabel;
+<<<<<<< Updated upstream
     private String experimentID;
 
     private ArrayList<String> REQUIRED_PERMISSIONS;
+=======
+    private String deviceID;
+    private boolean necessaryAuth = false;
+    private String lastUpdateTime;
+>>>>>>> Stashed changes
 
     private static String KEY_SHP_DATA = "key_shp_data";
     private static String KEY_JOINED_STUDY_STATUS = "key_joined_study_status";
@@ -75,15 +84,26 @@ public class MainActivity extends AppCompatActivity {
     private static String KEY_ALL_AUTHED = "key_all_authed";
     private static String KEY_USER_LABEL = "key_user_label";
     private static String KEY_EXPERIMENT_ID = "key_experiment_id";
+<<<<<<< Updated upstream
     private static String KEY_ACCESSIBILITY_AUTHED = "key_accessibility_authed";
+=======
+    private static String KEY_LAST_UPDATE_TIME = "key_last_update_time";
+>>>>>>> Stashed changes
 
     private JoinObserver joinObserver = new JoinObserver();
     Handler pluginWorkingHandler = new Handler();
+
+    private Button btnLog;
+    private static final String TAG_LOG = "MainActivity";
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        btnLog = findViewById(R.id.btn_log);
 
         Button btnGetAuthAppUsage = (Button) findViewById(R.id.btnGetAuth1);
         Button btnGetAuthOverlay = (Button) findViewById(R.id.btnGetAuth2);
@@ -93,9 +113,10 @@ public class MainActivity extends AppCompatActivity {
         Button btnSyncData = (Button) findViewById(R.id.btnSyncData);
         Button btnGetAccessibility = (Button) findViewById(R.id.btnGetAccessibility);
         TextView tvUserLabel = (TextView) findViewById(R.id.tvUserLabel);
-        TextView tvExperimentID = (TextView) findViewById(R.id.tvExperimentID);
+        TextView tvDeviceID = (TextView) findViewById(R.id.tvDeviceID);
         TextView tvDeviceInfo = (TextView) findViewById(R.id.tvDeviceInfo);
         TextView tvDebug = (TextView) findViewById(R.id.tvDebug);
+        TextView tvUpdateTime = (TextView) findViewById(R.id.tvLastUpdate);
 
         //通过SHP恢复缓存数据
         SharedPreferences shp = getSharedPreferences(KEY_SHP_DATA,Context.MODE_PRIVATE);
@@ -105,9 +126,18 @@ public class MainActivity extends AppCompatActivity {
         allAuthAllowed = shp.getBoolean(KEY_ALL_AUTHED, false);
         accessibilityAuthed = shp.getBoolean(KEY_ACCESSIBILITY_AUTHED, false);
         userLabel = shp.getString(KEY_USER_LABEL,"未注册用户名");
+<<<<<<< Updated upstream
         experimentID = shp.getString(KEY_EXPERIMENT_ID,"未注册实验");
         //实例化shpEditor
         SharedPreferences.Editor shpEditor = shp.edit();
+=======
+        deviceID = shp.getString(KEY_EXPERIMENT_ID,"未注册实验");
+        lastUpdateTime = shp.getString(KEY_LAST_UPDATE_TIME,"未注册实验");
+
+
+        //确认是否所有权限都获取
+        necessaryAuth = checkAllNecessaryAuthorities();
+>>>>>>> Stashed changes
 
         //校验各权限状态
         if (appUsageAuthed || isEnableAppUsageAccess(getApplicationContext())){
@@ -151,7 +181,24 @@ public class MainActivity extends AppCompatActivity {
         tvDeviceInfo.setText(getDeviceInfo());
         //获取用户名和实验ID
         tvUserLabel.setText(userLabel);
+<<<<<<< Updated upstream
         tvExperimentID.setText(experimentID);
+=======
+        tvDeviceID.setText(deviceID);
+        tvUpdateTime.setText(lastUpdateTime);
+        //确认是否加入实验
+        if (!joinedStudy){
+            btnJoinStudy.setVisibility(View.VISIBLE);
+            btnSyncData.setVisibility(View.INVISIBLE);
+        }else{
+            btnJoinStudy.setVisibility(View.INVISIBLE);
+//            btnSyncData.setVisibility(View.VISIBLE);
+            tvDebug.setText("已加入实验");
+            tvUserLabel.setText(userLabel);
+            tvDeviceID.setText(deviceID);
+            tvUpdateTime.setText(lastUpdateTime);
+        }
+>>>>>>> Stashed changes
 
         //为各按钮添加事件
 
@@ -248,16 +295,45 @@ public class MainActivity extends AppCompatActivity {
         btnSyncData.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+<<<<<<< Updated upstream
+=======
+//                Toast.makeText(getApplicationContext(),"同步数据中",Toast.LENGTH_SHORT).show();
+>>>>>>> Stashed changes
                 Intent sync = new Intent(Aware.ACTION_AWARE_SYNC_DATA);
                 sendBroadcast(sync);
                 syncPluginNow(Provider.getAuthority(getApplicationContext()));
             }
         });
+
+
+        btnLog.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                logDb();
+            }
+        });
+
+        startService(new Intent(this, ScheduleUploadTaskService.class));
+    }
+
+
+    private void logDb(){
+        Log.d(TAG_LOG, "IN loadWhitelist()");
+        Cursor wlCursor = getContentResolver().query(Provider.Applications_Diff.CONTENT_URI, null, null, null, null);
+        if (wlCursor != null) {
+            Log.d(TAG_LOG, "begin query");
+            while(wlCursor.moveToNext()){
+                Log.i(TAG_LOG, "start get params");
+            }
+            wlCursor.close();
+        }
+        Log.d(TAG_LOG, "FINISH loadWhitelist()");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+<<<<<<< Updated upstream
         updateViewFromShp();
 //        if (joinedStudy){
 //            self_permission_check();
@@ -332,6 +408,112 @@ public class MainActivity extends AppCompatActivity {
 //                Log.d("debugPlugin", "PLUGIN is not running");
 //            }
 //            pluginWorkingRunnable.run();
+=======
+        startService(new Intent(this, ScheduleUploadTaskService.class));
+        updateView();
+//        if (!Aware.isStudy(getApplicationContext())){
+//            Log.d("debugPlugin","Aware.isStudy(getApplicationContext()): " + String.valueOf(Aware.isStudy(getApplicationContext())));
+//            IntentFilter joinFilter = new IntentFilter(Aware.ACTION_JOINED_STUDY);
+//            registerReceiver(joinObserver, joinFilter);
+//        }
+        String device_id = Aware.getSetting(this, Aware_Preferences.DEVICE_ID);
+        String user_name = Aware.getSetting(this,Aware_Preferences.DEVICE_LABEL);
+        Log.d("debugPlugin", "device_id: "+ device_id + " user_name: "+user_name);
+        Log.d("debugPlugin","Aware.isStudy(getApplicationContext()): " + String.valueOf(Aware.isStudy(getApplicationContext())));
+        Log.d("debugPlugin","isPLUGIN running: "+isMyServiceRunning(Plugin.class));
+        if (joinedStudy && necessaryAuth){
+            Log.d("debugPlugin", "IN onResume if(joinedStudy && necessaryAuth)");
+            if (!Aware.IS_CORE_RUNNING){
+                Log.d("debugPlugin", "IN if (!Aware.IS_CORE_RUNNING) ");
+                Intent aware = new Intent(getApplicationContext(), Aware.class);
+                Aware.joinStudy(getApplicationContext(),"");
+                callAwareSettings(userLabel);
+                startPlugin();
+                startService(aware);
+            }
+            callAwareSettings(userLabel);
+            startPlugin();
+            activatePeriodicSyncForAwarePlugins();
+            pluginWorkingRunnable.run();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d("debugPlugin","onDestory()");
+        super.onDestroy();
+        //在应用被杀掉时，提示用户重新打开
+        notifyUserBeforeDestroy();
+    }
+
+    private void updateView(){
+        Button btnGetAuthAppUsage = (Button) findViewById(R.id.btnGetAuth1);
+        Button btnGetAuthOverlay = (Button) findViewById(R.id.btnGetAuth2);
+        Button btnGetAllAuth = (Button) findViewById(R.id.btnGetAuth3);
+        Button btnHowToAddWL = (Button) findViewById(R.id.btnAddWhiteList);
+        Button btnJoinStudy = (Button) findViewById(R.id.btnJoinStudy);
+        Button btnSyncData = (Button) findViewById(R.id.btnSyncData);
+        Button btnGetAccessibility = (Button) findViewById(R.id.btnGetAccessibility);
+        Button btnGetNotification = (Button) findViewById(R.id.btnNotification);
+        TextView tvUserLabel = (TextView) findViewById(R.id.tvUserLabel);
+        TextView tvDeviceID = (TextView) findViewById(R.id.tvDeviceID);
+        TextView tvDeviceInfo = (TextView) findViewById(R.id.tvDeviceInfo);
+        TextView tvDebug = (TextView) findViewById(R.id.tvDebug);
+        TextView tvUpdateTime = (TextView) findViewById(R.id.tvLastUpdate);
+
+        //通过SHP恢复缓存数据
+        SharedPreferences shp = getSharedPreferences(KEY_SHP_DATA,Context.MODE_PRIVATE);
+        joinedStudy = shp.getBoolean(KEY_JOINED_STUDY_STATUS, false);
+        allDataAuthAllowed = shp.getBoolean(KEY_ALL_AUTHED, false);
+        userLabel = shp.getString(KEY_USER_LABEL,"用户名（默认值）");
+        deviceID = shp.getString(KEY_EXPERIMENT_ID,"实验ID（默认值）");
+        lastUpdateTime = shp.getString(KEY_LAST_UPDATE_TIME,"未注册实验");
+
+
+        //校验各权限状态
+        if (isEnableAppUsageAccess(getApplicationContext())){
+            btnGetAuthAppUsage.setText("\u2713 已开启访问应用使用权限");
+            btnGetAuthAppUsage.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (android.provider.Settings.canDrawOverlays(getApplicationContext())){
+            btnGetAuthOverlay.setText("\u2713 已打开悬浮窗权限");
+            btnGetAuthOverlay.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (allDataAuthAllowed){
+            btnGetAllAuth.setText("\u2713 所有权限已获取成功");
+            btnGetAllAuth.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (isSystemWhitelist()){
+            btnHowToAddWL.setText("\u2713 已添加至系统白名单");
+            btnHowToAddWL.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        if (Applications.isAccessibilityServiceActive(getApplicationContext())){
+            btnGetAccessibility.setText("\u2713 已开启无障碍权限");
+            btnGetAccessibility.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
+        if (notificationManagerCompat.areNotificationsEnabled()){
+            btnGetNotification.setText("\u2713 已打开通知权限");
+            btnGetNotification.setBackgroundColor(getResources().getColor(R.color.teal_700));
+        }
+
+        //获取设备信息
+        tvDeviceInfo.setText(getDeviceInfo());
+        //获取用户名和实验ID
+        tvUserLabel.setText(userLabel);
+        tvDeviceID.setText(deviceID);
+        tvUpdateTime.setText(lastUpdateTime);
+
+        if (!joinedStudy){
+            btnJoinStudy.setVisibility(View.VISIBLE);
+            btnSyncData.setVisibility(View.INVISIBLE);
+        }else{
+            btnJoinStudy.setVisibility(View.INVISIBLE);
+//            btnSyncData.setVisibility(View.VISIBLE);
+            tvDebug.setText("已加入实验");
+            tvUserLabel.setText(userLabel);
+            tvDeviceID.setText(deviceID);
+>>>>>>> Stashed changes
         }
     }
 
@@ -512,7 +694,7 @@ public class MainActivity extends AppCompatActivity {
         Aware.setSetting(getApplicationContext(), Aware_Preferences.WEBSERVICE_WIFI_ONLY, false); //only sync over wifi
         Aware.setSetting(getApplicationContext(), Aware_Preferences.FREQUENCY_WEBSERVICE, 30);
         Aware.setSetting(getApplicationContext(), Aware_Preferences.FREQUENCY_CLEAN_OLD_DATA, 0); // How frequently to clean old data? (0 = never, 1 = weekly, 2 = monthly, 3 = daily, 4 = always)
-        Aware.setSetting(getApplicationContext(), Aware_Preferences.WEBSERVICE_CHARGING, false);
+        Aware.setSetting(getApplicationContext(), Aware_Preferences.WEBSERVICE_CHARGING, true);
         Aware.setSetting(getApplicationContext(), Aware_Preferences.WEBSERVICE_SILENT, true); //don't show notifications of syncing events
         Aware.setSetting(getApplicationContext(), Aware_Preferences.WEBSERVICE_FALLBACK_NETWORK, 1); //after 1h without being able to use Wifi to sync, fallback to 3G for syncing.
         Aware.setSetting(getApplicationContext(), Aware_Preferences.REMIND_TO_CHARGE, true); //remind participants to charge their phone when reaching 15% of battery left
@@ -529,16 +711,19 @@ public class MainActivity extends AppCompatActivity {
         Aware.startPlugin(getApplicationContext(), "com.aware.plugin.google.activity_recognition");
         Log.d(TAG, "Activity recognition plugin started");
 
+        //Network?
+        Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_NETWORK_EVENTS, true);
+        Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_NETWORK_TRAFFIC, true);
+        Aware.setSetting(getApplicationContext(), Aware_Preferences.FREQUENCY_NETWORK_TRAFFIC, 120);
 
-        TextView tvDebug = (TextView) findViewById(R.id.tvDebug);
-        tvDebug.setText("isBatteryOptimizationIgnored: " + String.valueOf(Aware.isBatteryOptimizationIgnored(getApplicationContext(), getPackageName())) + "\n"
-        + "isAccessibilityServiceActive: " + String.valueOf(Applications.isAccessibilityServiceActive(getApplicationContext()))
-        );
+
+        deviceID = Aware.getSetting(getApplicationContext(),Aware_Preferences.DEVICE_ID);
 
         SharedPreferences shp = getSharedPreferences(KEY_SHP_DATA,Context.MODE_PRIVATE);
         SharedPreferences.Editor shpEditor = shp.edit();
         shpEditor.putString(KEY_USER_LABEL, userLabel);
         shpEditor.putBoolean(KEY_JOINED_STUDY_STATUS, true);
+        shpEditor.putString(KEY_EXPERIMENT_ID, deviceID);
         shpEditor.apply();
     }
 
